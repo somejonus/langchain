@@ -22,7 +22,21 @@ from langchain.chains import (
     VectorDBQAWithSourcesChain,
 )
 from langchain.docstore import InMemoryDocstore, Wikipedia
-from langchain.llms import Cohere, HuggingFaceHub, OpenAI
+from langchain.llms import (
+    Anthropic,
+    Banana,
+    CerebriumAI,
+    Cohere,
+    ForefrontAI,
+    GooseAI,
+    HuggingFaceHub,
+    Modal,
+    OpenAI,
+    Petals,
+    SagemakerEndpoint,
+    StochasticAI,
+    Writer,
+)
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.prompts import (
     BasePromptTemplate,
@@ -30,15 +44,21 @@ from langchain.prompts import (
     Prompt,
     PromptTemplate,
 )
-from langchain.serpapi import SerpAPIChain, SerpAPIWrapper
 from langchain.sql_database import SQLDatabase
 from langchain.utilities.google_search import GoogleSearchAPIWrapper
+from langchain.utilities.google_serper import GoogleSerperAPIWrapper
+from langchain.utilities.searx_search import SearxSearchWrapper
+from langchain.utilities.serpapi import SerpAPIWrapper
+from langchain.utilities.wikipedia import WikipediaAPIWrapper
 from langchain.utilities.wolfram_alpha import WolframAlphaAPIWrapper
 from langchain.vectorstores import FAISS, ElasticVectorSearch
 
 verbose: bool = False
 llm_cache: Optional[BaseCache] = None
 set_default_callback_manager()
+
+# For backwards compatibility
+SerpAPIChain = SerpAPIWrapper
 
 __all__ = [
     "LLMChain",
@@ -48,10 +68,22 @@ __all__ = [
     "SelfAskWithSearchChain",
     "SerpAPIWrapper",
     "SerpAPIChain",
+    "SearxSearchWrapper",
     "GoogleSearchAPIWrapper",
+    "GoogleSerperAPIWrapper",
     "WolframAlphaAPIWrapper",
+    "WikipediaAPIWrapper",
+    "Anthropic",
+    "Banana",
+    "CerebriumAI",
     "Cohere",
+    "ForefrontAI",
+    "GooseAI",
+    "Modal",
     "OpenAI",
+    "Petals",
+    "StochasticAI",
+    "Writer",
     "BasePromptTemplate",
     "Prompt",
     "FewShotPromptTemplate",
@@ -59,6 +91,7 @@ __all__ = [
     "ReActChain",
     "Wikipedia",
     "HuggingFaceHub",
+    "SagemakerEndpoint",
     "HuggingFacePipeline",
     "SQLDatabase",
     "SQLDatabaseChain",

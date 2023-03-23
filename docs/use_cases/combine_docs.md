@@ -61,7 +61,7 @@ small enough chunks.
 LangChain provides some utilities to help with splitting up larger pieces of data. This comes in the form of the TextSplitter class.
 The class takes in a document and splits it up into chunks, with several parameters that control the
 size of the chunks as well as the overlap in the chunks (important for maintaining context).
-See [this walkthrough](../modules/utils/combine_docs_examples/textsplitter.ipynb) for more information.
+See [this walkthrough](../modules/indexes/examples/textsplitter.ipynb) for more information.
 
 ### Relevant Documents
 A second large issue related fetching data is to make sure you are not fetching too many documents, and are only fetching
@@ -76,13 +76,13 @@ Examples of vector database companies include [Pinecone](https://www.pinecone.io
 
 Although this is perhaps the most common way of document retrieval, people are starting to think about alternative
 data structures and indexing techniques specifically for working with language models. For a leading example of this,
-check out [GPT Index](https://github.com/jerryjliu/gpt_index) - a collection of data structures created by and optimized
+check out [LlamaIndex](https://github.com/jerryjliu/llama_index) - a collection of data structures created by and optimized
 for language models.
 
 ## Augmenting
 So you've fetched your relevant data - now what? How do you pass them to the language model in a format it can understand?
 For a detailed overview of the different ways of doing so, and the tradeoffs between them, please see 
-[this documentation](../modules/chains/combine_docs.md)
+[this documentation](../modules/indexes/combine_docs.md)
 
 ## Use Cases
 LangChain supports the above three methods of augmenting LLMs with external data.

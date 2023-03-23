@@ -20,8 +20,8 @@ from langchain.chains.llm_requests import LLMRequestsChain
 from langchain.chains.pal.base import PALChain
 from langchain.chains.qa_with_sources.base import QAWithSourcesChain
 from langchain.chains.qa_with_sources.vector_db import VectorDBQAWithSourcesChain
+from langchain.chains.retrieval_qa.base import VectorDBQA
 from langchain.chains.sql_database.base import SQLDatabaseChain
-from langchain.chains.vector_db_qa.base import VectorDBQA
 from langchain.llms.loading import load_llm, load_llm_from_config
 from langchain.prompts.loading import load_prompt, load_prompt_from_config
 from langchain.utilities.loading import try_load_from_hub
@@ -440,7 +440,7 @@ def load_chain_from_config(config: dict, **kwargs: Any) -> Chain:
 def load_chain(path: Union[str, Path], **kwargs: Any) -> Chain:
     """Unified method for loading a chain from LangChainHub or local fs."""
     if hub_result := try_load_from_hub(
-        path, _load_chain_from_file, "chains", {"json", "yaml"}
+        path, _load_chain_from_file, "chains", {"json", "yaml"}, **kwargs
     ):
         return hub_result
     else:
@@ -463,5 +463,12 @@ def _load_chain_from_file(file: Union[str, Path], **kwargs: Any) -> Chain:
             config = yaml.safe_load(f)
     else:
         raise ValueError("File type must be json or yaml")
+
+    # Override default 'verbose' and 'memory' for the chain
+    if "verbose" in kwargs:
+        config["verbose"] = kwargs.pop("verbose")
+    if "memory" in kwargs:
+        config["memory"] = kwargs.pop("memory")
+
     # Load the chain from the config now.
     return load_chain_from_config(config, **kwargs)

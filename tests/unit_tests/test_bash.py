@@ -1,4 +1,5 @@
 """Test the bash utility."""
+import re
 import subprocess
 from pathlib import Path
 
@@ -19,6 +20,13 @@ def test_incorrect_command() -> None:
     session = BashProcess()
     output = session.run(["invalid_command"])
     assert output == "Command 'invalid_command' returned non-zero exit status 127."
+
+
+def test_incorrect_command_return_err_output() -> None:
+    """Test optional returning of shell output on incorrect command."""
+    session = BashProcess(return_err_output=True)
+    output = session.run(["invalid_command"])
+    assert re.match(r"^/bin/sh:.*invalid_command.*not found.*$", output)
 
 
 def test_create_directory_and_files(tmp_path: Path) -> None:

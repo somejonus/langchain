@@ -8,8 +8,8 @@ from pydantic import BaseModel, Extra, Field
 from langchain.chains.base import Chain
 from langchain.chains.llm import LLMChain
 from langchain.chains.sql_database.prompt import DECIDER_PROMPT, PROMPT
-from langchain.llms.base import BaseLLM
 from langchain.prompts.base import BasePromptTemplate
+from langchain.schema import BaseLanguageModel
 from langchain.sql_database import SQLDatabase
 
 
@@ -21,10 +21,10 @@ class SQLDatabaseChain(Chain, BaseModel):
 
             from langchain import SQLDatabaseChain, OpenAI, SQLDatabase
             db = SQLDatabase(...)
-            db_chain = SelfAskWithSearchChain(llm=OpenAI(), database=db)
+            db_chain = SQLDatabaseChain(llm=OpenAI(), database=db)
     """
 
-    llm: BaseLLM
+    llm: BaseLanguageModel
     """LLM wrapper to use."""
     database: SQLDatabase = Field(exclude=True)
     """SQL Database to connect to."""
@@ -35,6 +35,9 @@ class SQLDatabaseChain(Chain, BaseModel):
     input_key: str = "query"  #: :meta private:
     output_key: str = "result"  #: :meta private:
     return_intermediate_steps: bool = False
+    """Whether or not to return the intermediate steps along with the final answer."""
+    return_direct: bool = False
+    """Whether or not to return the result of querying the SQL table directly."""
 
     class Config:
         """Configuration for this pydantic object."""
@@ -83,11 +86,17 @@ class SQLDatabaseChain(Chain, BaseModel):
         intermediate_steps.append(result)
         self.callback_manager.on_text("\nSQLResult: ", verbose=self.verbose)
         self.callback_manager.on_text(result, color="yellow", verbose=self.verbose)
-        self.callback_manager.on_text("\nAnswer:", verbose=self.verbose)
-        input_text += f"{sql_cmd}\nSQLResult: {result}\nAnswer:"
-        llm_inputs["input"] = input_text
-        final_result = llm_chain.predict(**llm_inputs)
-        self.callback_manager.on_text(final_result, color="green", verbose=self.verbose)
+        # If return direct, we just set the final result equal to the sql query
+        if self.return_direct:
+            final_result = result
+        else:
+            self.callback_manager.on_text("\nAnswer:", verbose=self.verbose)
+            input_text += f"{sql_cmd}\nSQLResult: {result}\nAnswer:"
+            llm_inputs["input"] = input_text
+            final_result = llm_chain.predict(**llm_inputs)
+            self.callback_manager.on_text(
+                final_result, color="green", verbose=self.verbose
+            )
         chain_result: Dict[str, Any] = {self.output_key: final_result}
         if self.return_intermediate_steps:
             chain_result["intermediate_steps"] = intermediate_steps
@@ -108,10 +117,12 @@ class SQLDatabaseSequentialChain(Chain, BaseModel):
     This is useful in cases where the number of tables in the database is large.
     """
 
+    return_intermediate_steps: bool = False
+
     @classmethod
     def from_llm(
         cls,
-        llm: BaseLLM,
+        llm: BaseLanguageModel,
         database: SQLDatabase,
         query_prompt: BasePromptTemplate = PROMPT,
         decider_prompt: BasePromptTemplate = DECIDER_PROMPT,
@@ -145,7 +156,10 @@ class SQLDatabaseSequentialChain(Chain, BaseModel):
 
         :meta private:
         """
-        return [self.output_key]
+        if not self.return_intermediate_steps:
+            return [self.output_key]
+        else:
+            return [self.output_key, "intermediate_steps"]
 
     def _call(self, inputs: Dict[str, str]) -> Dict[str, str]:
         _table_names = self.sql_chain.database.get_table_names()

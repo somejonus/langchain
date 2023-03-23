@@ -17,10 +17,7 @@ The user guide here shows more advanced workflows and how to use the library in 
 
 `Few Shot Prompt Examples <./examples/few_shot_examples.html>`_: Examples of Few Shot Prompt Templates.
 
-
-
-
-
+`Partial Prompt Template <./examples/partial.html>`_: How to partial Prompt Templates.
 
 
 
@@ -35,3 +32,4 @@ The user guide here shows more advanced workflows and how to use the library in 
    ./examples/prompt_serialization.ipynb
    ./examples/few_shot_examples_data.ipynb
    ./examples/example_selectors.ipynb
+   ./examples/output_parsers.ipynb
