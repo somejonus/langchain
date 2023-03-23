@@ -52,7 +52,8 @@ class ChatAgent(Agent):
             return response["action"], response["action_input"]
 
         except Exception:
-            raise ValueError(f"Could not parse LLM output: {text}")
+            return "Final Answer", text
+            # raise ValueError(f"Could not parse LLM output: {text}")
 
     @property
     def _stop(self) -> List[str]:
