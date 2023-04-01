@@ -126,14 +126,14 @@ class SerpAPIWrapper(BaseModel):
         if "error" in res.keys():
             raise ValueError(f"Got error from SerpAPI: {res['error']}")
         if "answer_box" in res.keys() and "answer" in res["answer_box"].keys():
-            toret = res["answer_box"]["answer"]
+            toret = res["answer_box"]["answer"] + ". Source: " + res["answer_box"]["sources"][0]["link"]
         elif "answer_box" in res.keys() and "snippet" in res["answer_box"].keys():
-            toret = res["answer_box"]["snippet"]
+            toret = res["answer_box"]["snippet"] + ". Source: " + res["answer_box"]["sources"][0]["link"]
         elif (
             "answer_box" in res.keys()
             and "snippet_highlighted_words" in res["answer_box"].keys()
         ):
-            toret = res["answer_box"]["snippet_highlighted_words"][0]
+            toret = res["answer_box"]["snippet_highlighted_words"][0] + " Source: " + res["answer_box"]["sources"][0]["link"]
         elif (
             "sports_results" in res.keys()
             and "game_spotlight" in res["sports_results"].keys()
@@ -143,9 +143,9 @@ class SerpAPIWrapper(BaseModel):
             "knowledge_graph" in res.keys()
             and "description" in res["knowledge_graph"].keys()
         ):
-            toret = res["knowledge_graph"]["description"]
+            toret = res["knowledge_graph"]["description"] + " Source: " + res["knowledge_graph"]["source"]["link"]
         elif "snippet" in res["organic_results"][0].keys():
-            toret = res["organic_results"][0]["snippet"]
+            toret = res["organic_results"][0]["snippet"] + " Source: " + res["organic_results"][0]["link"]
 
         else:
             toret = "No good search result found"
