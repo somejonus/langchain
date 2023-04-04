@@ -132,6 +132,7 @@ class ElasticVectorSearch(VectorStore, ABC):
         self,
         texts: Iterable[str],
         metadatas: Optional[List[dict]] = None,
+        refresh_indices: bool = True,
         **kwargs: Any,
     ) -> List[str]:
         """Run more texts through the embeddings and add to the vectorstore.
@@ -139,6 +140,7 @@ class ElasticVectorSearch(VectorStore, ABC):
         Args:
             texts: Iterable of strings to add to the vectorstore.
             metadatas: Optional list of metadatas associated with the texts.
+            refresh_indices: bool to refresh ElasticSearch indices
 
         Returns:
             List of ids from adding the texts into the vectorstore.
@@ -167,8 +169,9 @@ class ElasticVectorSearch(VectorStore, ABC):
             ids.append(_id)
             requests.append(request)
         bulk(self.client, requests)
-        # TODO: add option not to refresh
-        self.client.indices.refresh(index=self.index_name)
+
+        if refresh_indices:
+            self.client.indices.refresh(index=self.index_name)
         return ids
 
     def similarity_search(
@@ -230,7 +233,7 @@ class ElasticVectorSearch(VectorStore, ABC):
         except ImportError:
             raise ValueError(
                 "Could not import elasticsearch python package. "
-                "Please install it with `pip install elasticearch`."
+                "Please install it with `pip install elasticsearch`."
             )
         try:
             client = elasticsearch.Elasticsearch(elasticsearch_url)

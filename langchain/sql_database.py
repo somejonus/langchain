@@ -1,6 +1,7 @@
 """SQLAlchemy wrapper around a database."""
 from __future__ import annotations
 
+import warnings
 from typing import Any, Iterable, List, Optional
 
 from sqlalchemy import MetaData, create_engine, inspect, select, text
@@ -21,6 +22,7 @@ class SQLDatabase:
         include_tables: Optional[List[str]] = None,
         sample_rows_in_table_info: int = 3,
         custom_table_info: Optional[dict] = None,
+        view_support: Optional[bool] = False,
     ):
         """Create engine from database URI."""
         self._engine = engine
@@ -29,7 +31,14 @@ class SQLDatabase:
             raise ValueError("Cannot specify both include_tables and ignore_tables")
 
         self._inspector = inspect(self._engine)
-        self._all_tables = set(self._inspector.get_table_names(schema=schema))
+
+        # including view support by adding the views as well as tables to the all
+        # tables list if view_support is True
+        self._all_tables = set(
+            self._inspector.get_table_names(schema=schema)
+            + (self._inspector.get_view_names(schema=schema) if view_support else [])
+        )
+
         self._include_tables = set(include_tables) if include_tables else set()
         if self._include_tables:
             missing_tables = self._include_tables - self._all_tables
@@ -44,6 +53,8 @@ class SQLDatabase:
                 raise ValueError(
                     f"ignore_tables {missing_tables} not found in database"
                 )
+        usable_tables = self.get_usable_table_names()
+        self._usable_tables = set(usable_tables) if usable_tables else self._all_tables
 
         if not isinstance(sample_rows_in_table_info, int):
             raise TypeError("sample_rows_in_table_info must be an integer")
@@ -66,7 +77,13 @@ class SQLDatabase:
             )
 
         self._metadata = metadata or MetaData()
-        self._metadata.reflect(bind=self._engine)
+        # including view support if view_support = true
+        self._metadata.reflect(
+            views=view_support,
+            bind=self._engine,
+            only=self._usable_tables,
+            schema=self._schema,
+        )
 
     @classmethod
     def from_uri(
@@ -81,11 +98,18 @@ class SQLDatabase:
         """Return string representation of dialect to use."""
         return self._engine.dialect.name
 
-    def get_table_names(self) -> Iterable[str]:
+    def get_usable_table_names(self) -> Iterable[str]:
         """Get names of tables available."""
         if self._include_tables:
             return self._include_tables
         return self._all_tables - self._ignore_tables
+
+    def get_table_names(self) -> Iterable[str]:
+        """Get names of tables available."""
+        warnings.warn(
+            "This method is deprecated - please use `get_usable_table_names`."
+        )
+        return self.get_usable_table_names()
 
     @property
     def table_info(self) -> str:
@@ -102,7 +126,7 @@ class SQLDatabase:
         appended to each table description. This can increase performance as
         demonstrated in the paper.
         """
-        all_table_names = self.get_table_names()
+        all_table_names = self.get_usable_table_names()
         if table_names is not None:
             missing_tables = set(table_names).difference(all_table_names)
             if missing_tables:
