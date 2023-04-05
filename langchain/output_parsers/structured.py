@@ -38,8 +38,13 @@ class StructuredOutputParser(BaseOutputParser):
         return STRUCTURED_FORMAT_INSTRUCTIONS.format(format=schema_str)
 
     def parse(self, text: str) -> BaseModel:
-        json_string = text.split("```json")[1].strip().strip("```").strip()
-        json_obj = json.loads(json_string)
+        try:
+            json_string = text.split("```json")[1].strip().strip("```").strip()
+            json_obj = json.loads(json_string)
+        except:
+            print("BAD JSON: " + text)
+            # create a fake json object
+            json_obj = { "answer": text, "source": "", "inferred_challenges": ""}
         for schema in self.response_schemas:
             if schema.name not in json_obj:
                 raise OutputParserException(
