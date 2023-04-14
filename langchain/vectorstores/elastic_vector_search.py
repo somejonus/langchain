@@ -146,6 +146,7 @@ class ElasticVectorSearch(VectorStore, ABC):
             List of ids from adding the texts into the vectorstore.
         """
         try:
+            from elasticsearch.exceptions import NotFoundError
             from elasticsearch.helpers import bulk
         except ImportError:
             raise ValueError(
@@ -155,6 +156,17 @@ class ElasticVectorSearch(VectorStore, ABC):
         requests = []
         ids = []
         embeddings = self.embedding.embed_documents(list(texts))
+        dim = len(embeddings[0])
+        mapping = _default_text_mapping(dim)
+
+        # check to see if the index already exists
+        try:
+            self.client.indices.get(index=self.index_name)
+        except NotFoundError:
+            # TODO would be nice to create index before embedding,
+            # just to save expensive steps for last
+            self.client.indices.create(index=self.index_name, mappings=mapping)
+
         for i, text in enumerate(texts):
             metadata = metadatas[i] if metadatas else {}
             _id = str(uuid.uuid4())
@@ -188,8 +200,8 @@ class ElasticVectorSearch(VectorStore, ABC):
         """
         embedding = self.embedding.embed_query(query)
         script_query = _default_script_query(embedding)
-        response = self.client.search(index=self.index_name, query=script_query)
-        hits = [hit["_source"] for hit in response["hits"]["hits"][:k]]
+        response = self.client.search(index=self.index_name, query=script_query, size=k)
+        hits = [hit["_source"] for hit in response["hits"]["hits"]]
         documents = [
             Document(page_content=hit["text"], metadata=hit["metadata"]) for hit in hits
         ]
@@ -229,6 +241,7 @@ class ElasticVectorSearch(VectorStore, ABC):
         )
         try:
             import elasticsearch
+            from elasticsearch.exceptions import NotFoundError
             from elasticsearch.helpers import bulk
         except ImportError:
             raise ValueError(
@@ -241,13 +254,19 @@ class ElasticVectorSearch(VectorStore, ABC):
             raise ValueError(
                 "Your elasticsearch client string is misformatted. " f"Got error: {e} "
             )
-        index_name = uuid.uuid4().hex
+        index_name = kwargs.get("index_name", uuid.uuid4().hex)
         embeddings = embedding.embed_documents(texts)
         dim = len(embeddings[0])
         mapping = _default_text_mapping(dim)
-        # TODO would be nice to create index before embedding,
-        # just to save expensive steps for last
-        client.indices.create(index=index_name, mappings=mapping)
+
+        # check to see if the index already exists
+        try:
+            client.indices.get(index=index_name)
+        except NotFoundError:
+            # TODO would be nice to create index before embedding,
+            # just to save expensive steps for last
+            client.indices.create(index=index_name, mappings=mapping)
+
         requests = []
         for i, text in enumerate(texts):
             metadata = metadatas[i] if metadatas else {}
