@@ -29,6 +29,13 @@ class GoogleSerperAPIWrapper(BaseModel):
     hl: str = "en"
     serper_api_key: Optional[str] = None
 
+    def __init__(self, gl: Optional[str] = None, hl: Optional[str] = None, **data):
+        super().__init__(**data)
+        if gl:
+            self.gl = gl
+        if hl:
+            self.hl = hl
+
     @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key exists in environment."""
@@ -88,6 +95,7 @@ class GoogleSerperAPIWrapper(BaseModel):
             "Content-Type": "application/json",
         }
         params = {"q": search_term, "gl": gl, "hl": hl}
+        print(params)
         response = requests.post(
             "https://google.serper.dev/search", headers=headers, params=params
         )
