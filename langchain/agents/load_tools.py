@@ -231,7 +231,7 @@ _EXTRA_OPTIONAL_TOOLS = {
         ["searx_host", "engines", "num_results", "aiosession"],
     ),
     "bing-search": (_get_bing_search, ["bing_subscription_key", "bing_search_url"]),
-    "google-serper": (_get_google_serper, ["serper_api_key"]),
+    "google-serper": (_get_google_serper, ["serper_api_key", "gl", "hl"]),
     "serpapi": (_get_serpapi, ["serpapi_api_key", "aiosession"]),
     "searx-search": (_get_searx_search, ["searx_host", "engines", "aiosession"]),
     "wikipedia": (_get_wikipedia, ["top_k_results"]),
