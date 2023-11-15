@@ -1,17 +1,16 @@
-"""Wrapper around Replicate API."""
 import logging
 from typing import Any, Dict, List, Mapping, Optional
 
-from pydantic import Extra, Field, root_validator
-
+from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
+from langchain.pydantic_v1 import Extra, Field, root_validator
 from langchain.utils import get_from_dict_or_env
 
 logger = logging.getLogger(__name__)
 
 
 class Replicate(LLM):
-    """Wrapper around Replicate models.
+    """Replicate models.
 
     To use, you should have the ``replicate`` python package installed,
     and the environment variable ``REPLICATE_API_TOKEN`` set with your API token.
@@ -22,6 +21,7 @@ class Replicate(LLM):
 
     Example:
         .. code-block:: python
+
             from langchain.llms import Replicate
             replicate = Replicate(model="stability-ai/stable-diffusion: \
                                          27b93a2413e7f36cd83da926f365628\
@@ -34,10 +34,24 @@ class Replicate(LLM):
     model_kwargs: Dict[str, Any] = Field(default_factory=dict)
     replicate_api_token: Optional[str] = None
 
+    streaming: bool = Field(default=False)
+    """Whether to stream the results."""
+
+    stop: Optional[List[str]] = Field(default=[])
+    """Stop sequences to early-terminate generation."""
+
     class Config:
         """Configuration for this pydantic config."""
 
         extra = Extra.forbid
+
+    @property
+    def lc_secrets(self) -> Dict[str, str]:
+        return {"replicate_api_token": "REPLICATE_API_TOKEN"}
+
+    @property
+    def lc_serializable(self) -> bool:
+        return True
 
     @root_validator(pre=True)
     def build_extra(cls, values: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,7 +64,7 @@ class Replicate(LLM):
                 if field_name in extra:
                     raise ValueError(f"Found {field_name} supplied twice.")
                 logger.warning(
-                    f"""{field_name} was transfered to model_kwargs.
+                    f"""{field_name} was transferred to model_kwargs.
                     Please confirm that {field_name} is what you intended."""
                 )
                 extra[field_name] = values.pop(field_name)
@@ -70,6 +84,7 @@ class Replicate(LLM):
     def _identifying_params(self) -> Mapping[str, Any]:
         """Get the identifying parameters."""
         return {
+            "model": self.model,
             **{"model_kwargs": self.model_kwargs},
         }
 
@@ -78,12 +93,18 @@ class Replicate(LLM):
         """Return type of model."""
         return "replicate"
 
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
         """Call to replicate endpoint."""
         try:
             import replicate as replicate_python
         except ImportError:
-            raise ValueError(
+            raise ImportError(
                 "Could not import replicate python package. "
                 "Please install it with `pip install replicate`."
             )
@@ -101,8 +122,29 @@ class Replicate(LLM):
             key=lambda item: item[1].get("x-order", 0),
         )
         first_input_name = input_properties[0][0]
-
         inputs = {first_input_name: prompt, **self.input}
 
-        outputs = replicate_python.run(self.model, input={**inputs})
-        return outputs[0]
+        prediction = replicate_python.predictions.create(
+            version=version, input={**inputs, **kwargs}
+        )
+        current_completion: str = ""
+        stop_condition_reached = False
+        for output in prediction.output_iterator():
+            current_completion += output
+
+            # test for stop conditions, if specified
+            if stop:
+                for s in stop:
+                    if s in current_completion:
+                        prediction.cancel()
+                        stop_index = current_completion.find(s)
+                        current_completion = current_completion[:stop_index]
+                        stop_condition_reached = True
+                        break
+
+            if stop_condition_reached:
+                break
+
+            if self.streaming and run_manager:
+                run_manager.on_llm_new_token(output)
+        return current_completion

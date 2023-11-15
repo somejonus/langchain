@@ -1,4 +1,3 @@
-"""Loader that loads all documents from a blackboard course."""
 import contextlib
 import re
 from pathlib import Path
@@ -12,7 +11,7 @@ from langchain.document_loaders.web_base import WebBaseLoader
 
 
 class BlackboardLoader(WebBaseLoader):
-    """Loader that loads all documents from a Blackboard course.
+    """Load a `Blackboard` course.
 
     This loader is not compatible with all Blackboard courses. It is only
     compatible with courses that use the new Blackboard interface.
@@ -31,11 +30,14 @@ class BlackboardLoader(WebBaseLoader):
             )
             documents = loader.load()
 
-    """
+    """  # noqa: E501
 
     base_url: str
+    """Base url of the blackboard course."""
     folder_path: str
+    """Path to the folder containing the documents."""
     load_all_recursively: bool
+    """If True, load all documents recursively."""
 
     def __init__(
         self,
@@ -44,6 +46,7 @@ class BlackboardLoader(WebBaseLoader):
         load_all_recursively: bool = True,
         basic_auth: Optional[Tuple[str, str]] = None,
         cookies: Optional[dict] = None,
+        continue_on_failure: Optional[bool] = False,
     ):
         """Initialize with blackboard course url.
 
@@ -55,6 +58,10 @@ class BlackboardLoader(WebBaseLoader):
             load_all_recursively: If True, load all documents recursively.
             basic_auth: Basic auth credentials.
             cookies: Cookies.
+            continue_on_failure: whether to continue loading the sitemap if an error
+                occurs loading a url, emitting a warning instead of raising an
+                exception. Setting this to True makes the loader more robust, but also
+                may result in missing data. Default: False
 
         Raises:
             ValueError: If blackboard course url is invalid.
@@ -64,7 +71,7 @@ class BlackboardLoader(WebBaseLoader):
         try:
             self.base_url = blackboard_course_url.split("/webapps/blackboard")[0]
         except IndexError:
-            raise ValueError(
+            raise IndexError(
                 "Invalid blackboard course url. "
                 "Please provide a url that starts with "
                 "https://<blackboard_url>/webapps/blackboard"
@@ -77,6 +84,7 @@ class BlackboardLoader(WebBaseLoader):
         cookies.update({"BbRouter": bbrouter})
         self.session.cookies.update(cookies)
         self.load_all_recursively = load_all_recursively
+        self.continue_on_failure = continue_on_failure
         self.check_bs4()
 
     def check_bs4(self) -> None:
@@ -94,10 +102,10 @@ class BlackboardLoader(WebBaseLoader):
             )
 
     def load(self) -> List[Document]:
-        """Load data into document objects.
+        """Load data into Document objects.
 
         Returns:
-            List of documents.
+            List of Documents.
         """
         if self.load_all_recursively:
             soup_info = self.scrape()
@@ -118,7 +126,7 @@ class BlackboardLoader(WebBaseLoader):
             return self._get_documents(soup_info)
 
     def _get_folder_path(self, soup: Any) -> str:
-        """Get the folder path to save the documents in.
+        """Get the folder path to save the Documents in.
 
         Args:
             soup: BeautifulSoup4 soup object.
@@ -229,7 +237,7 @@ class BlackboardLoader(WebBaseLoader):
         return relative_paths
 
     def download(self, path: str) -> None:
-        """Download a file from a url.
+        """Download a file from an url.
 
         Args:
             path: Path to the file.
@@ -243,7 +251,7 @@ class BlackboardLoader(WebBaseLoader):
             f.write(response.content)
 
     def parse_filename(self, url: str) -> str:
-        """Parse the filename from a url.
+        """Parse the filename from an url.
 
         Args:
             url: Url to parse the filename from.
@@ -257,7 +265,7 @@ class BlackboardLoader(WebBaseLoader):
             return self._parse_filename_from_url(url)
 
     def _parse_filename_from_url(self, url: str) -> str:
-        """Parse the filename from a url.
+        """Parse the filename from an url.
 
         Args:
             url: Url to parse the filename from.

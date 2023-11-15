@@ -1,24 +1,16 @@
+# ruff: noqa: E402
 """Main entrypoint into package."""
-
 from importlib import metadata
 from typing import Optional
 
 from langchain.agents import MRKLChain, ReActChain, SelfAskWithSearchChain
-from langchain.cache import BaseCache
-from langchain.callbacks import (
-    set_default_callback_manager,
-    set_handler,
-    set_tracing_callback_manager,
-)
 from langchain.chains import (
     ConversationChain,
     LLMBashChain,
     LLMChain,
     LLMCheckerChain,
     LLMMathChain,
-    PALChain,
     QAWithSourcesChain,
-    SQLDatabaseChain,
     VectorDBQA,
     VectorDBQAWithSourcesChain,
 )
@@ -31,45 +23,58 @@ from langchain.llms import (
     ForefrontAI,
     GooseAI,
     HuggingFaceHub,
+    HuggingFaceTextGenInference,
     LlamaCpp,
     Modal,
     OpenAI,
     Petals,
+    PipelineAI,
     SagemakerEndpoint,
     StochasticAI,
     Writer,
 )
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.prompts import (
-    BasePromptTemplate,
     FewShotPromptTemplate,
     Prompt,
     PromptTemplate,
 )
-from langchain.sql_database import SQLDatabase
+from langchain.schema.cache import BaseCache
+from langchain.schema.prompt_template import BasePromptTemplate
+from langchain.utilities.arxiv import ArxivAPIWrapper
+from langchain.utilities.golden_query import GoldenQueryAPIWrapper
 from langchain.utilities.google_search import GoogleSearchAPIWrapper
 from langchain.utilities.google_serper import GoogleSerperAPIWrapper
+from langchain.utilities.powerbi import PowerBIDataset
 from langchain.utilities.searx_search import SearxSearchWrapper
 from langchain.utilities.serpapi import SerpAPIWrapper
+from langchain.utilities.sql_database import SQLDatabase
 from langchain.utilities.wikipedia import WikipediaAPIWrapper
 from langchain.utilities.wolfram_alpha import WolframAlphaAPIWrapper
 from langchain.vectorstores import FAISS, ElasticVectorSearch
 
-__version__ = metadata.version(__package__)
+try:
+    __version__ = metadata.version(__package__)
+except metadata.PackageNotFoundError:
+    # Case where package metadata is not available.
+    __version__ = ""
 del metadata  # optional, avoids polluting the results of dir(__package__)
 
 verbose: bool = False
+debug: bool = False
 llm_cache: Optional[BaseCache] = None
-set_default_callback_manager()
 
 # For backwards compatibility
 SerpAPIChain = SerpAPIWrapper
+
 
 __all__ = [
     "LLMChain",
     "LLMBashChain",
     "LLMCheckerChain",
     "LLMMathChain",
+    "ArxivAPIWrapper",
+    "GoldenQueryAPIWrapper",
     "SelfAskWithSearchChain",
     "SerpAPIWrapper",
     "SerpAPIChain",
@@ -87,6 +92,7 @@ __all__ = [
     "Modal",
     "OpenAI",
     "Petals",
+    "PipelineAI",
     "StochasticAI",
     "Writer",
     "BasePromptTemplate",
@@ -99,7 +105,7 @@ __all__ = [
     "SagemakerEndpoint",
     "HuggingFacePipeline",
     "SQLDatabase",
-    "SQLDatabaseChain",
+    "PowerBIDataset",
     "FAISS",
     "MRKLChain",
     "VectorDBQA",
@@ -108,8 +114,6 @@ __all__ = [
     "ConversationChain",
     "VectorDBQAWithSourcesChain",
     "QAWithSourcesChain",
-    "PALChain",
-    "set_handler",
-    "set_tracing_callback_manager",
     "LlamaCpp",
+    "HuggingFaceTextGenInference",
 ]

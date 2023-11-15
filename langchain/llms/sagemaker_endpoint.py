@@ -1,17 +1,21 @@
-"""Wrapper around Sagemaker InvokeEndpoint API."""
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Mapping, Optional, Union
+"""Sagemaker InvokeEndpoint API."""
+from abc import abstractmethod
+from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
 
-from pydantic import Extra, root_validator
-
+from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
 from langchain.llms.utils import enforce_stop_tokens
+from langchain.pydantic_v1 import Extra, root_validator
+
+INPUT_TYPE = TypeVar("INPUT_TYPE", bound=Union[str, List[str]])
+OUTPUT_TYPE = TypeVar("OUTPUT_TYPE", bound=Union[str, List[List[float]]])
 
 
-class ContentHandlerBase(ABC):
+class ContentHandlerBase(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     """A handler class to transform input from LLM to a
-    format that SageMaker endpoint expects. Similarily,
-    the class also handles transforming output from the
+    format that SageMaker endpoint expects.
+
+    Similarly, the class handles transforming output from the
     SageMaker endpoint to a format that LLM class expects.
     """
 
@@ -39,9 +43,7 @@ class ContentHandlerBase(ABC):
     """The MIME type of the response data returned from endpoint"""
 
     @abstractmethod
-    def transform_input(
-        self, prompt: Union[str, List[str]], model_kwargs: Dict
-    ) -> bytes:
+    def transform_input(self, prompt: INPUT_TYPE, model_kwargs: Dict) -> bytes:
         """Transforms the input to a format that model can accept
         as the request Body. Should return bytes or seekable file
         like object in the format specified in the content_type
@@ -49,14 +51,18 @@ class ContentHandlerBase(ABC):
         """
 
     @abstractmethod
-    def transform_output(self, output: bytes) -> Any:
+    def transform_output(self, output: bytes) -> OUTPUT_TYPE:
         """Transforms the output from the model to string that
         the LLM class expects.
         """
 
 
+class LLMContentHandler(ContentHandlerBase[str, str]):
+    """Content handler for LLM class."""
+
+
 class SagemakerEndpoint(LLM):
-    """Wrapper around custom Sagemaker Inference Endpoints.
+    """Sagemaker Inference Endpoint models.
 
     To use, you must supply the endpoint name from your deployed
     Sagemaker model & the region where it is deployed.
@@ -110,7 +116,7 @@ class SagemakerEndpoint(LLM):
     See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
     """
 
-    content_handler: ContentHandlerBase
+    content_handler: LLMContentHandler
     """The content handler class that provides an input and
     output transform functions to handle formats between LLM
     and the endpoint.
@@ -120,7 +126,9 @@ class SagemakerEndpoint(LLM):
      Example:
         .. code-block:: python
 
-        class ContentHandler(ContentHandlerBase):
+        from langchain.llms.sagemaker_endpoint import LLMContentHandler
+
+        class ContentHandler(LLMContentHandler):
                 content_type = "application/json"
                 accepts = "application/json"
 
@@ -174,7 +182,7 @@ class SagemakerEndpoint(LLM):
                 ) from e
 
         except ImportError:
-            raise ValueError(
+            raise ImportError(
                 "Could not import boto3 python package. "
                 "Please install it with `pip install boto3`."
             )
@@ -194,7 +202,13 @@ class SagemakerEndpoint(LLM):
         """Return type of llm."""
         return "sagemaker_endpoint"
 
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
         """Call out to Sagemaker inference endpoint.
 
         Args:
@@ -210,6 +224,7 @@ class SagemakerEndpoint(LLM):
                 response = se("Tell me a joke.")
         """
         _model_kwargs = self.model_kwargs or {}
+        _model_kwargs = {**_model_kwargs, **kwargs}
         _endpoint_kwargs = self.endpoint_kwargs or {}
 
         body = self.content_handler.transform_input(prompt, _model_kwargs)

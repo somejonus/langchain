@@ -1,13 +1,12 @@
-"""Wrapper around HazyResearch's Manifest library."""
 from typing import Any, Dict, List, Mapping, Optional
 
-from pydantic import Extra, root_validator
-
+from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
+from langchain.pydantic_v1 import Extra, root_validator
 
 
 class ManifestWrapper(LLM):
-    """Wrapper around HazyResearch's Manifest library."""
+    """HazyResearch's Manifest library."""
 
     client: Any  #: :meta private:
     llm_kwargs: Optional[Dict] = None
@@ -26,7 +25,7 @@ class ManifestWrapper(LLM):
             if not isinstance(values["client"], Manifest):
                 raise ValueError
         except ImportError:
-            raise ValueError(
+            raise ImportError(
                 "Could not import manifest python package. "
                 "Please install it with `pip install manifest-ml`."
             )
@@ -42,13 +41,20 @@ class ManifestWrapper(LLM):
         """Return type of llm."""
         return "manifest"
 
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
         """Call out to LLM through Manifest."""
         if stop is not None and len(stop) != 1:
             raise NotImplementedError(
                 f"Manifest currently only supports a single stop token, got {stop}"
             )
-        kwargs = self.llm_kwargs or {}
+        params = self.llm_kwargs or {}
+        params = {**params, **kwargs}
         if stop is not None:
-            kwargs["stop_token"] = stop
-        return self.client.run(prompt, **kwargs)
+            params["stop_token"] = stop
+        return self.client.run(prompt, **params)

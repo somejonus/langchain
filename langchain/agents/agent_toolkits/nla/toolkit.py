@@ -1,21 +1,19 @@
-"""Toolkit for interacting with API's using natural language."""
 from __future__ import annotations
 
 from typing import Any, List, Optional, Sequence
 
-from pydantic import Field
-
 from langchain.agents.agent_toolkits.base import BaseToolkit
 from langchain.agents.agent_toolkits.nla.tool import NLATool
-from langchain.llms.base import BaseLLM
-from langchain.requests import Requests
+from langchain.pydantic_v1 import Field
+from langchain.schema.language_model import BaseLanguageModel
 from langchain.tools.base import BaseTool
 from langchain.tools.openapi.utils.openapi_utils import OpenAPISpec
 from langchain.tools.plugin import AIPlugin
+from langchain.utilities.requests import Requests
 
 
 class NLAToolkit(BaseToolkit):
-    """Natural Language API Toolkit Definition."""
+    """Natural Language API Toolkit."""
 
     nla_tools: Sequence[NLATool] = Field(...)
     """List of API Endpoint Tools."""
@@ -26,7 +24,7 @@ class NLAToolkit(BaseToolkit):
 
     @staticmethod
     def _get_http_operation_tools(
-        llm: BaseLLM,
+        llm: BaseLanguageModel,
         spec: OpenAPISpec,
         requests: Optional[Requests] = None,
         verbose: bool = False,
@@ -53,7 +51,7 @@ class NLAToolkit(BaseToolkit):
     @classmethod
     def from_llm_and_spec(
         cls,
-        llm: BaseLLM,
+        llm: BaseLanguageModel,
         spec: OpenAPISpec,
         requests: Optional[Requests] = None,
         verbose: bool = False,
@@ -68,7 +66,7 @@ class NLAToolkit(BaseToolkit):
     @classmethod
     def from_llm_and_url(
         cls,
-        llm: BaseLLM,
+        llm: BaseLanguageModel,
         open_api_url: str,
         requests: Optional[Requests] = None,
         verbose: bool = False,
@@ -83,7 +81,7 @@ class NLAToolkit(BaseToolkit):
     @classmethod
     def from_llm_and_ai_plugin(
         cls,
-        llm: BaseLLM,
+        llm: BaseLanguageModel,
         ai_plugin: AIPlugin,
         requests: Optional[Requests] = None,
         verbose: bool = False,
@@ -103,7 +101,7 @@ class NLAToolkit(BaseToolkit):
     @classmethod
     def from_llm_and_ai_plugin_url(
         cls,
-        llm: BaseLLM,
+        llm: BaseLanguageModel,
         ai_plugin_url: str,
         requests: Optional[Requests] = None,
         verbose: bool = False,
