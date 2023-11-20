@@ -25,9 +25,17 @@ class GoogleSerperAPIWrapper(BaseModel):
             google_serper = GoogleSerperAPIWrapper()
     """
 
-    k: int = 10
+    k: int = 3
     gl: str = "us"
     hl: str = "en"
+
+    def __init__(self, gl: Optional[str] = None, hl: Optional[str] = None, **data):
+        super().__init__(**data)
+        if gl:
+            self.gl = gl
+        if hl:
+            self.hl = hl
+
     # "places" and "images" is available from Serper but not implemented in the
     # parser of run(). They can be used in results()
     type: Literal["news", "search", "places", "images"] = "search"
@@ -115,28 +123,30 @@ class GoogleSerperAPIWrapper(BaseModel):
 
         if results.get("answerBox"):
             answer_box = results.get("answerBox", {})
+            source = answer_box.get("link")
             if answer_box.get("answer"):
-                return [answer_box.get("answer")]
+                return answer_box.get("answer") + " Source: " + source
             elif answer_box.get("snippet"):
-                return [answer_box.get("snippet").replace("\n", " ")]
+                return answer_box.get("snippet").replace("\n", " ") + " Source: " + source
             elif answer_box.get("snippetHighlighted"):
-                return answer_box.get("snippetHighlighted")
+                return (", ".join(answer_box.get("snippetHighlighted"))) + " Source: " + source
 
         if results.get("knowledgeGraph"):
             kg = results.get("knowledgeGraph", {})
             title = kg.get("title")
             entity_type = kg.get("type")
+            source = kg.get("descriptionLink")
             if entity_type:
-                snippets.append(f"{title}: {entity_type}.")
+                snippets.append(f"{title}: {entity_type}. Source: {source}")
             description = kg.get("description")
             if description:
-                snippets.append(description)
+                snippets.append(description + f" Source: {source}")
             for attribute, value in kg.get("attributes", {}).items():
                 snippets.append(f"{title} {attribute}: {value}.")
 
-        for result in results[self.result_key_for_type[self.type]][: self.k]:
+        for result in results["organic"][: self.k]:
             if "snippet" in result:
-                snippets.append(result["snippet"])
+                snippets.append(result["snippet"] + " Source: " + result["link"])
             for attribute, value in result.get("attributes", {}).items():
                 snippets.append(f"{attribute}: {value}.")
 
@@ -158,6 +168,7 @@ class GoogleSerperAPIWrapper(BaseModel):
             "q": search_term,
             **{key: value for key, value in kwargs.items() if value is not None},
         }
+        print(params)
         response = requests.post(
             f"https://google.serper.dev/{search_type}", headers=headers, params=params
         )

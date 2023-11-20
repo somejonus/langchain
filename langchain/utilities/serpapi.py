@@ -132,17 +132,17 @@ class SerpAPIWrapper(BaseModel):
         if "answer_box_list" in res.keys():
             res["answer_box"] = res["answer_box_list"]
         if "answer_box" in res.keys():
-            answer_box = res["answer_box"]
+            answer_box = res["answer_box"] + ". Source: " + res["answer_box"]["sources"][0]["link"]
             if isinstance(answer_box, list):
-                answer_box = answer_box[0]
+                answer_box = answer_box[0] + ". Source: " + res["answer_box"]["sources"][0]["link"]
             if "result" in answer_box.keys():
-                return answer_box["result"]
+                return answer_box["result"] + ". Source: " + res["answer_box"]["sources"][0]["link"]
             elif "answer" in answer_box.keys():
-                return answer_box["answer"]
+                return answer_box["answer"] + ". Source: " + res["answer_box"]["sources"][0]["link"]
             elif "snippet" in answer_box.keys():
-                return answer_box["snippet"]
+                return answer_box["snippet"] + ". Source: " + res["answer_box"]["sources"][0]["link"]
             elif "snippet_highlighted_words" in answer_box.keys():
-                return answer_box["snippet_highlighted_words"]
+                return answer_box["snippet_highlighted_words"] + " Source: " + res["answer_box"]["sources"][0]["link"]
             else:
                 answer = {}
                 for key, value in answer_box.items():
@@ -186,7 +186,7 @@ class SerpAPIWrapper(BaseModel):
             knowledge_graph = res["knowledge_graph"]
             title = knowledge_graph["title"] if "title" in knowledge_graph else ""
             if "description" in knowledge_graph.keys():
-                snippets.append(knowledge_graph["description"])
+                snippets.append(knowledge_graph["description"] + " Source: " + res["knowledge_graph"]["source"]["link"])
             for key, value in knowledge_graph.items():
                 if (
                     type(key) == str
@@ -200,9 +200,9 @@ class SerpAPIWrapper(BaseModel):
         if "organic_results" in res.keys():
             first_organic_result = res["organic_results"][0]
             if "snippet" in first_organic_result.keys():
-                snippets.append(first_organic_result["snippet"])
+                snippets.append(first_organic_result["snippet"] + " Source: " + res["organic_results"][0]["link"])
             elif "snippet_highlighted_words" in first_organic_result.keys():
-                snippets.append(first_organic_result["snippet_highlighted_words"])
+                snippets.append(first_organic_result["snippet_highlighted_words"] + " Source: " + res["organic_results"][0]["link"])
             elif "rich_snippet" in first_organic_result.keys():
                 snippets.append(first_organic_result["rich_snippet"])
             elif "rich_snippet_table" in first_organic_result.keys():
