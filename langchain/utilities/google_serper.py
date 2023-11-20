@@ -25,12 +25,14 @@ class GoogleSerperAPIWrapper(BaseModel):
             google_serper = GoogleSerperAPIWrapper()
     """
 
-    k: int = 3
+    k: int = 10
     gl: str = "us"
     hl: str = "en"
 
-    def __init__(self, gl: Optional[str] = None, hl: Optional[str] = None, **data):
+    def __init__(self, gl: Optional[str] = None, hl: Optional[str] = None, k: Optional[int] = None, **data):
         super().__init__(**data)
+        if k:
+            self.k = k
         if gl:
             self.gl = gl
         if hl:
